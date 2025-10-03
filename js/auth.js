@@ -32,7 +32,10 @@ window.auth = (() => {
   function setSession(me) {
     if (!me) return;
 
-    localStorage.setItem('role', (me.role_name || '').toLowerCase());
+    // Prefer role_name, then role; if missing, default to 'guest'
+    const roleName = (me.role_name || me.role || 'guest').toString().toLowerCase();
+
+    localStorage.setItem('role', roleName);
     localStorage.setItem('user', JSON.stringify(me));
 
     // Update top-bar profile name if the element exists
@@ -48,7 +51,7 @@ window.auth = (() => {
     // Re-render sidebar with latest role + permissions
     const perms = JSON.parse(localStorage.getItem('permissions') || '[]');
     window.renderSidebar?.({
-      role: (me.role_name || 'faculty').toLowerCase(),
+      role: roleName,
       permissions: perms
     });
   }
