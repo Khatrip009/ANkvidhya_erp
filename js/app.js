@@ -1,13 +1,12 @@
 // public/js/app.js
-(async () => {
-  const API_BASE = (window.CONFIG && window.CONFIG.API_BASE) || '/api';
 
-  // Health check
+(async () => {
+  // Health check with correct API_BASE
   try {
-    const res = await fetch(`${API_BASE}/status/health`);
-    if (!res.ok) throw new Error('Health check failed');
-    const data = await res.json();
-    console.log('Backend OK', data.now);
+    const base = (window.CONFIG && window.CONFIG.API_BASE) || '';
+    const r = await fetch(`${base}/health`);
+    const j = await r.json();
+    console.log('Backend OK', j.now);
   } catch (e) {
     console.warn('Health check failed:', e.message);
   }
@@ -15,9 +14,14 @@
   // If already authed (token present), hydrate session from /api/auth/me
   if (auth.isAuthed()) {
     try {
-      await auth.loadMe(); // loadMe handles logout on 401
-    } catch {}
+      await auth.loadMe(); // sets session (role + permissions)
+    } catch {
+      // loadMe handles logout on 401
+    }
   }
+
+  // Now boot sidebar with role + permissions
+  bootSidebar();
 })();
 
 // Theme toggle
@@ -30,16 +34,11 @@ document.getElementById('btnTheme')?.addEventListener('click', () => {
 // Logout
 document.getElementById('btnLogout')?.addEventListener('click', () => auth.logout());
 
-// Init role-based sidebar once DOM is ready
+// Init role-based sidebar
 function bootSidebar() {
-  const role = (localStorage.getItem('role') || 'faculty').toLowerCase();
+  const role = (localStorage.getItem('role') || 'guest').toLowerCase();
   const perms = JSON.parse(localStorage.getItem('permissions') || '[]');
   window.renderSidebar?.({ role, permissions: perms });
-}
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', bootSidebar, { once: true });
-} else {
-  bootSidebar();
 }
 
 // Boot router when DOM is ready
@@ -71,9 +70,7 @@ if (document.readyState === 'loading') {
     if (href.startsWith('#')) location.hash = href;
     else if (href) location.hash = '#/' + href.replace(/^#?\/*/, '');
     const ocEl = document.getElementById('appSidebar');
-    const oc = ocEl
-      ? (bootstrap.Offcanvas.getInstance(ocEl) || bootstrap.Offcanvas.getOrCreateInstance(ocEl))
-      : null;
+    const oc = ocEl ? (bootstrap.Offcanvas.getInstance(ocEl) || bootstrap.Offcanvas.getOrCreateInstance(ocEl)) : null;
     if (oc) oc.hide();
     router.navigate();
   });
