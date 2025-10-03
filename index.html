@@ -14,83 +14,77 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-
   <!-- FullCalendar -->
   <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css" rel="stylesheet">
 
   <!-- Custom CSS -->
   <link rel="stylesheet" href="/css/styles.css">
+
   <!-- ===== critical theme variables (fallback if /css/styles.css fails) ===== -->
-<style id="critical-theme-vars">
-:root {
-  --primary-color:#d4a759;
-  --secondary-color:#b55c3b;
-  --accent-color:#f5e9da;
-  --dark-text:#3d2c1d;
-  --light-background:#f8f9fa;
+  <style id="critical-theme-vars">
+  :root {
+    --primary-color:#d4a759;
+    --secondary-color:#b55c3b;
+    --accent-color:#f5e9da;
+    --dark-text:#3d2c1d;
+    --light-background:#f8f9fa;
 
-  --brand:#5d9bf8;
-  --brand-2:#6c757d;
+    --brand:#5d9bf8;
+    --brand-2:#6c757d;
 
-  --ok:#16a34a;
-  --warn:#f59e0b;
-  --bad:#dc3545;
+    --ok:#16a34a;
+    --warn:#f59e0b;
+    --bad:#dc3545;
 
-  --card:#fff;
-  --muted:#6b7280;
-  --ghost:#f8f9fa;
+    --card:#fff;
+    --muted:#6b7280;
+    --ghost:#f8f9fa;
 
-  --ring: rgba(13,110,253,.35);
-  --trans-fast: all .2s ease;
-  --trans-slow: all .4s ease;
-}
+    --ring: rgba(13,110,253,.35);
+    --trans-fast: all .2s ease;
+    --trans-slow: all .4s ease;
+  }
 
-[data-bs-theme="dark"] {
-  --primary-color:#6366f1;
-  --secondary-color:#06b6d4;
-  --accent-color:#1e293b;
-  --dark-text:#e2e8f0;
-  --light-background:#0f172a;
+  [data-bs-theme="dark"] {
+    --primary-color:#6366f1;
+    --secondary-color:#06b6d4;
+    --accent-color:#1e293b;
+    --dark-text:#e2e8f0;
+    --light-background:#0f172a;
 
-  --brand:#4f46e5;
-  --brand-2:#0ea5e9;
+    --brand:#4f46e5;
+    --brand-2:#0ea5e9;
 
-  --ok:#22c55e;
-  --warn:#facc15;
-  --bad:#f87171;
+    --ok:#22c55e;
+    --warn:#facc15;
+    --bad:#f87171;
 
-  --card:#1e293b;
-  --ghost:#111827;
-  --muted:#94a3b8;
+    --card:#1e293b;
+    --ghost:#111827;
+    --muted:#94a3b8;
 
-  --bs-body-bg: #0f172a;
-  --bs-body-color: #e2e8f0;
-  --bs-border-color: rgba(255,255,255,0.08);
-}
+    --bs-body-bg: #0f172a;
+    --bs-body-color: #e2e8f0;
+    --bs-border-color: rgba(255,255,255,0.08);
+  }
 
-/* minimal styling that matters for theme visual change */
-body {
-  background: var(--light-background);
-  transition: var(--trans-slow);
-  font-family: 'Poppins', sans-serif;
-  color: var(--dark-text);
-}
-[data-bs-theme="dark"] body {
-  background: var(--bs-body-bg);
-  color: var(--bs-body-color);
-}
-</style>
-
-<!-- then load the full stylesheet (normal) -->
-<link rel="stylesheet" href="/css/styles.css">
-
+  body {
+    background: var(--light-background);
+    transition: var(--trans-slow);
+    font-family: 'Poppins', sans-serif;
+    color: var(--dark-text);
+  }
+  [data-bs-theme="dark"] body {
+    background: var(--bs-body-bg);
+    color: var(--bs-body-color);
+  }
+  </style>
 </head>
 <body class="d-flex flex-column min-vh-100">
 
   <!-- Topbar -->
   <nav class="navbar navbar-expand bg-body border-bottom sticky-top shadow-sm">
     <div class="container-fluid">
-      <!-- universal sidebar toggle -->
       <button class="btn btn-outline-secondary me-2" type="button" data-sidebar-toggle>
         <i class="bi bi-list"></i>
       </button>
@@ -208,7 +202,7 @@ body {
   <!-- Bootstrap + app boot -->
   <script src="/js/app.js"></script>
 
-  <!-- Minimal robust theme toggler (DOM-ready, safe localStorage, system pref) -->
+  <!-- Theme toggler -->
   <script>
   document.addEventListener('DOMContentLoaded', () => {
     const KEY = 'theme';
@@ -219,7 +213,7 @@ body {
     const ICON_SUN = 'bi-brightness-high';
 
     function safeGetStorage(key) {
-      try { return localStorage.getItem(key); } catch (e) { return null; }
+      try { return localStorage.getItem(key); } catch { return null; }
     }
     function safeSetStorage(key, value) {
       try { localStorage.setItem(key, value); } catch (e) { /* ignore */ }
@@ -236,7 +230,6 @@ body {
       html.setAttribute('data-bs-theme', theme);
       body.setAttribute('data-bs-theme', theme);
 
-      // Update button icon (if present)
       if (btn) {
         const icon = btn.querySelector('i');
         if (icon) {
@@ -260,10 +253,8 @@ body {
     }
 
     initTheme();
-
     if (btn) btn.addEventListener('click', toggleTheme);
 
-    // Auto-update on system change only if user hasn't explicitly chosen a theme
     if (window.matchMedia) {
       try {
         const mq = window.matchMedia('(prefers-color-scheme: dark)');
@@ -272,12 +263,9 @@ body {
             applyTheme(e.matches ? 'dark' : 'light');
           }
         });
-      } catch (e) {
-        // ignore if addEventListener not supported
-      }
+      } catch (e) {}
     }
   });
   </script>
-
 </body>
 </html>
