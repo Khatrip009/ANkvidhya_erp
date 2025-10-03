@@ -1,21 +1,22 @@
 // public/js/app.js
 (async () => {
+  const API_BASE = (window.CONFIG && window.CONFIG.API_BASE) || '/api';
+
+  // Health check
   try {
-    const base = (window.CONFIG && window.CONFIG.API_BASE) || '';
-    const r = await fetch(`${base}/health`);
-    const j = await r.json();
-    console.log('Backend OK', j.now);
+    const res = await fetch(`${API_BASE}/status/health`);
+    if (!res.ok) throw new Error('Health check failed');
+    const data = await res.json();
+    console.log('Backend OK', data.now);
   } catch (e) {
     console.warn('Health check failed:', e.message);
   }
 
   // If already authed (token present), hydrate session from /api/auth/me
   if (auth.isAuthed()) {
-    try { 
-      await auth.loadMe(); 
-    } catch { 
-      /* loadMe handles logout on 401 */ 
-    }
+    try {
+      await auth.loadMe(); // loadMe handles logout on 401
+    } catch {}
   }
 })();
 
@@ -70,7 +71,9 @@ if (document.readyState === 'loading') {
     if (href.startsWith('#')) location.hash = href;
     else if (href) location.hash = '#/' + href.replace(/^#?\/*/, '');
     const ocEl = document.getElementById('appSidebar');
-    const oc = ocEl ? (bootstrap.Offcanvas.getInstance(ocEl) || bootstrap.Offcanvas.getOrCreateInstance(ocEl)) : null;
+    const oc = ocEl
+      ? (bootstrap.Offcanvas.getInstance(ocEl) || bootstrap.Offcanvas.getOrCreateInstance(ocEl))
+      : null;
     if (oc) oc.hide();
     router.navigate();
   });
