@@ -1,4 +1,4 @@
-// Adjust if API runs elsewhere
+// public/js/config.js
 window.CONFIG = {
-  API_BASE: '', // same origin; set to 'http://localhost:4000' if serving separately
+  API_BASE: 'https://hallucinational-ratlike-coralie.ngrok-free.dev', // <- set your ngrok url
 };
