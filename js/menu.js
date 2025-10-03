@@ -30,9 +30,6 @@ function renderItem({ title, href, icon }) {
 }
 
 // ===== Menu definitions by role =====
-// public/js/menu.js
-// ... keep the helper functions renderGroup/renderItem as-is ...
-
 const MENUS = {
   admin: [
     { type: 'item', title: 'Dashboard', href: '#/dashboard', icon: 'bi-speedometer2' },
@@ -51,8 +48,6 @@ const MENUS = {
         { title: 'Activities',    href: '#/master?table=activities',    icon: 'bi-check2-square' },
         { title: 'Topics',        href: '#/master?table=topics',        icon: 'bi-tags' },
         { title: 'Table Catalog', href: '#/master?table=table_list',    icon: 'bi-table' },
-
-        // keep your dedicated content pages separate (non-generic)
         { title: 'Courses',       href: '#/courses',        icon: 'bi-journal' },
         { title: 'Books',         href: '#/books',          icon: 'bi-book' },
         { title: 'Chapters',      href: '#/chapters',       icon: 'bi-journal-text' },
@@ -64,7 +59,7 @@ const MENUS = {
         { title: 'Users',      href: '#/users',     icon: 'bi-people-gear' },
         { title: 'Schools',    href: '#/schools',   icon: 'bi-bank' },
         { title: 'Employees',  href: '#/employees', icon: 'bi-person-badge' },
-        {title: 'Faculty-Assign', href: '#/faculty-assign', icon: 'bi-person-workspace'},
+        { title: 'Faculty-Assign', href: '#/faculty-assign', icon: 'bi-person-workspace'},
         { title: 'Students',   href: '#/students',  icon: 'bi-people' },
         { title: 'Staff Roles', href: '#/staff-roles', icon: 'bi-person-lock' },
       ]},
@@ -91,8 +86,6 @@ const MENUS = {
 
     { type: 'item', title: 'Settings', href: '#/settings', icon: 'bi-gear' },
   ],
-
-
 
   faculty: [
     { type: 'item', title: 'My Dashboard', href: '#/dashboard', icon: 'bi-speedometer2' },
@@ -133,16 +126,20 @@ const MENUS = {
       ]},
     { type: 'item', title: 'Reports', href: '#/reports', icon: 'bi-graph-up' },
   ],
+
+  guest: [
+    { type: 'item', title: 'Login', href: '#/login', icon: 'bi-box-arrow-in-right' }
+  ]
 };
 
 // Optional permissions-based pruning
 function filterByPermissions(menu, _permissions = []) { return menu; }
 
 // Render into #sidebarMenu
-window.renderSidebar = function renderSidebar({ role = 'faculty', permissions = [] } = {}) {
+window.renderSidebar = function renderSidebar({ role = 'guest', permissions = [] } = {}) {
   const root = document.getElementById('sidebarMenu');
   if (!root) return;
-  const r = (role || '').toLowerCase();
-  const items = filterByPermissions(MENUS[r] || MENUS['faculty'], permissions);
+  const r = (role || 'guest').toLowerCase();
+  const items = filterByPermissions(MENUS[r] || MENUS['guest'], permissions);
   root.innerHTML = items.map(m => (m.type === 'group' ? renderGroup(m) : renderItem(m))).join('');
 };
