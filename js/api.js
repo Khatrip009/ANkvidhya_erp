@@ -17,23 +17,21 @@
     return s ? `?${s}` : '';
   }
 
-  // Read a single cookie value
- // Safe escaping for dynamic regex parts
-function escapeForRegex(s) {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-function readCookie(name) {
-  try {
-    const re = new RegExp('(?:^|; )' + escapeForRegex(name) + '=([^;]*)');
-    const m = document.cookie.match(re);
-    return m ? decodeURIComponent(m[1]) : '';
-  } catch {
-    return '';
+  // Safe escaping for dynamic regex parts
+  function escapeForRegex(s) {
+    return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   }
-}
 
-
+  // Read a single cookie value
+  function readCookie(name) {
+    try {
+      const re = new RegExp('(?:^|; )' + escapeForRegex(name) + '=([^;]*)');
+      const m = document.cookie.match(re);
+      return m ? decodeURIComponent(m[1]) : '';
+    } catch {
+      return '';
+    }
+  }
 
   // Always get the freshest token (auth helper → localStorage → cookie)
   function getTokenFresh() {
@@ -69,16 +67,20 @@ function readCookie(name) {
     url,
     { method = 'GET', body, query, headers = {}, background = false, expect = 'auto', _retried } = {}
   ) {
+    // Always prepend API_BASE if provided
     const base = (window.CONFIG && window.CONFIG.API_BASE) || '';
-    let token = getTokenFresh();
+    const fullUrl = `${base}${url}${qs(query)}`;
 
+    let token = getTokenFresh();
     const h = new Headers(headers);
 
     const isFormData = (typeof FormData !== 'undefined') && (body instanceof FormData);
+
     // Only set JSON content-type for plain objects; let browser set for FormData
     if (!h.has('Content-Type') && body !== undefined && !isFormData && typeof body !== 'string') {
       h.set('Content-Type', 'application/json');
     }
+
     // Be liberal in what we accept
     if (!h.has('Accept')) h.set('Accept', 'application/json, text/plain, */*');
 
@@ -92,7 +94,7 @@ function readCookie(name) {
       }
     }
 
-    const resp = await fetch(`${base}${url}${qs(query)}`, {
+    const resp = await fetch(fullUrl, {
       method,
       headers: h,
       body:
@@ -120,7 +122,7 @@ function readCookie(name) {
         try { errPayload = await resp.json(); } catch {}
       }
 
-      // 401: only auto-logout if NOT a background ping
+      // 401: auto-logout if NOT a background ping
       if (resp.status === 401 && !background) {
         try { window.auth?.setToken(''); } catch {}
         try { localStorage.removeItem('token'); } catch {}
@@ -128,7 +130,7 @@ function readCookie(name) {
         if (location.hash !== '#/login') location.replace('#/login');
       }
 
-      // 403 (RLS forbidden): don’t log out—just show a warning toast
+      // 403 (RLS forbidden): just warn
       if (resp.status === 403 && errPayload?.message) {
         window.ui?.toast?.(errPayload.message, 'warning');
       }
@@ -138,6 +140,7 @@ function readCookie(name) {
       );
       err.status = resp.status;
       err.data = errPayload;
+      console.error('[api] Request failed:', method, fullUrl, err.status, err.message);
       throw err;
     }
 
@@ -173,7 +176,7 @@ function readCookie(name) {
     download,
     get:  (url, opts) => request(url, { ...opts, method: 'GET' }),
     post: (url, body, opts) => request(url, { ...opts, method: 'POST', body }),
-    put:  (url, body, opts) => request(url, { ...opts, method: 'PUT',  body }),
+    put:  (url, body, opts) => request(url, { ...opts, method: 'PUT', body }),
     del:  (url, opts) => request(url, { ...opts, method: 'DELETE' }),
 
     // Silent POST helper for trackers/pings (avoid auto-logout on 401)
