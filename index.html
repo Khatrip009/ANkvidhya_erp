@@ -12,85 +12,30 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <!-- Bootstrap Icons -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
-  <!-- Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 
   <!-- FullCalendar -->
   <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css" rel="stylesheet">
 
-  <!-- Custom CSS -->
+  <!-- Custom CSS (critical fallback + file) -->
   <link rel="stylesheet" href="/css/styles.css">
-  <!-- ===== critical theme variables (fallback if /css/styles.css fails) ===== -->
-<style id="critical-theme-vars">
-:root {
-  --primary-color:#d4a759;
-  --secondary-color:#b55c3b;
-  --accent-color:#f5e9da;
-  --dark-text:#3d2c1d;
-  --light-background:#f8f9fa;
-
-  --brand:#5d9bf8;
-  --brand-2:#6c757d;
-
-  --ok:#16a34a;
-  --warn:#f59e0b;
-  --bad:#dc3545;
-
-  --card:#fff;
-  --muted:#6b7280;
-  --ghost:#f8f9fa;
-
-  --ring: rgba(13,110,253,.35);
-  --trans-fast: all .2s ease;
-  --trans-slow: all .4s ease;
-}
-
-[data-bs-theme="dark"] {
-  --primary-color:#6366f1;
-  --secondary-color:#06b6d4;
-  --accent-color:#1e293b;
-  --dark-text:#e2e8f0;
-  --light-background:#0f172a;
-
-  --brand:#4f46e5;
-  --brand-2:#0ea5e9;
-
-  --ok:#22c55e;
-  --warn:#facc15;
-  --bad:#f87171;
-
-  --card:#1e293b;
-  --ghost:#111827;
-  --muted:#94a3b8;
-
-  --bs-body-bg: #0f172a;
-  --bs-body-color: #e2e8f0;
-  --bs-border-color: rgba(255,255,255,0.08);
-}
-
-/* minimal styling that matters for theme visual change */
-body {
-  background: var(--light-background);
-  transition: var(--trans-slow);
-  font-family: 'Poppins', sans-serif;
-  color: var(--dark-text);
-}
-[data-bs-theme="dark"] body {
-  background: var(--bs-body-bg);
-  color: var(--bs-body-color);
-}
-</style>
-
-<!-- then load the full stylesheet (normal) -->
-<link rel="stylesheet" href="/css/styles.css">
-
+  <style id="critical-theme-vars">
+    :root {
+      --primary-color:#d4a759;
+      --secondary-color:#b55c3b;
+      --accent-color:#f5e9da;
+      --dark-text:#3d2c1d;
+      --light-background:#f8f9fa;
+      --card:#fff;
+      --muted:#6b7280;
+    }
+    body { background: var(--light-background); font-family: 'Poppins', sans-serif; color: var(--dark-text); }
+  </style>
 </head>
 <body class="d-flex flex-column min-vh-100">
 
   <!-- Topbar -->
   <nav class="navbar navbar-expand bg-body border-bottom sticky-top shadow-sm">
     <div class="container-fluid">
-      <!-- universal sidebar toggle -->
       <button class="btn btn-outline-secondary me-2" type="button" data-sidebar-toggle>
         <i class="bi bi-list"></i>
       </button>
@@ -101,12 +46,10 @@ body {
       </a>
 
       <div class="ms-auto d-flex align-items-center gap-2">
-        <!-- Theme -->
         <button id="btnTheme" class="btn btn-outline-secondary" title="Toggle theme">
           <i class="bi bi-moon"></i>
         </button>
 
-        <!-- Notifications -->
         <div class="dropdown">
           <button class="btn btn-outline-secondary position-relative" data-bs-toggle="dropdown" aria-expanded="false" title="Notifications">
             <i class="bi bi-bell"></i>
@@ -119,7 +62,6 @@ body {
           </div>
         </div>
 
-        <!-- Profile -->
         <div class="dropdown">
           <button class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
             <i class="bi bi-person-circle me-1"></i><span id="topProfileName">Profile</span>
@@ -141,9 +83,7 @@ body {
       <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
     </div>
     <div class="offcanvas-body p-0">
-      <div class="list-group list-group-flush" id="sidebarMenu">
-        <!-- filled by menu.js -->
-      </div>
+      <div class="list-group list-group-flush" id="sidebarMenu"></div>
     </div>
   </div>
 
@@ -161,23 +101,23 @@ body {
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.5.25/dist/jspdf.plugin.autotable.min.js"></script>
 
-  <!-- Core libs -->
+  <!-- CONFIG -->
+  <script>
+    // Default API base — change in production or inject via CI.
+    window.CONFIG = window.CONFIG || {};
+    // Default to localhost when developing locally; otherwise rely on explicit override.
+    window.CONFIG.API_BASE = window.CONFIG.API_BASE || (location.hostname === 'localhost' ? 'http://localhost:4000' : '');
+  </script>
+
+  <!-- Core libs (order matters) -->
   <script src="/js/ui.js"></script>
-  <script src="/js/config.js"></script>
   <script src="/js/auth.js"></script>
-  <script src="/js/scope.js"></script>
-  <script src="/js/config.js"></script>
   <script src="/js/api.js"></script>
 
-  <!-- Role-based sidebar -->
+  <!-- Sidebar / routing / components -->
   <script src="/js/menu.js"></script>
   <script src="/js/rls.js"></script>
-
-  <!-- Router -->
-  
   <script src="/js/router.js"></script>
-
-  <!-- Components -->
   <script src="/js/components/datagrid.js"></script>
   <script src="/js/components/formkit.js"></script>
 
@@ -207,78 +147,23 @@ body {
   <script src="/js/pages/student-attendance.js"></script>
   <script src="/js/pages/notebook-checks.js"></script>
 
-  <!-- Bootstrap + app boot -->
+  <!-- App boot -->
   <script src="/js/app.js"></script>
 
-  <!-- Minimal robust theme toggler (DOM-ready, safe localStorage, system pref) -->
+  <!-- Theme toggler -->
   <script>
-  document.addEventListener('DOMContentLoaded', () => {
-    const KEY = 'theme';
-    const html = document.documentElement;
-    const body = document.body;
-    const btn = document.getElementById('btnTheme');
-    const ICON_MOON = 'bi-moon';
-    const ICON_SUN = 'bi-brightness-high';
-
-    function safeGetStorage(key) {
-      try { return localStorage.getItem(key); } catch (e) { return null; }
-    }
-    function safeSetStorage(key, value) {
-      try { localStorage.setItem(key, value); } catch (e) { /* ignore */ }
-    }
-
-    function systemPref() {
-      try {
-        return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-      } catch (e) { return 'light'; }
-    }
-
-    function applyTheme(theme) {
-      theme = theme === 'dark' ? 'dark' : 'light';
-      html.setAttribute('data-bs-theme', theme);
-      body.setAttribute('data-bs-theme', theme);
-
-      // Update button icon (if present)
-      if (btn) {
-        const icon = btn.querySelector('i');
-        if (icon) {
-          icon.classList.remove(ICON_MOON, ICON_SUN);
-          icon.classList.add(theme === 'dark' ? ICON_SUN : ICON_MOON);
-        }
-      }
-    }
-
-    function initTheme() {
-      const stored = safeGetStorage(KEY);
-      const start = stored || systemPref() || 'light';
-      applyTheme(start);
-    }
-
-    function toggleTheme() {
-      const current = html.getAttribute('data-bs-theme') || 'light';
-      const next = current === 'dark' ? 'light' : 'dark';
-      applyTheme(next);
-      safeSetStorage(KEY, next);
-    }
-
-    initTheme();
-
-    if (btn) btn.addEventListener('click', toggleTheme);
-
-    // Auto-update on system change only if user hasn't explicitly chosen a theme
-    if (window.matchMedia) {
-      try {
-        const mq = window.matchMedia('(prefers-color-scheme: dark)');
-        mq.addEventListener('change', (e) => {
-          if (safeGetStorage(KEY) == null) {
-            applyTheme(e.matches ? 'dark' : 'light');
-          }
-        });
-      } catch (e) {
-        // ignore if addEventListener not supported
-      }
-    }
-  });
+    document.addEventListener('DOMContentLoaded', () => {
+      const KEY = 'theme';
+      const html = document.documentElement;
+      const btn = document.getElementById('btnTheme');
+      function safeGetStorage(k){ try{ return localStorage.getItem(k);}catch(e){return null;} }
+      function safeSetStorage(k,v){ try{ localStorage.setItem(k,v);}catch(e){} }
+      function systemPref(){ try{ return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }catch(e){return 'light'} }
+      function applyTheme(theme){ theme = theme==='dark'?'dark':'light'; html.setAttribute('data-bs-theme', theme); if(btn){ const icon = btn.querySelector('i'); if(icon){ icon.classList.remove('bi-moon','bi-brightness-high'); icon.classList.add(theme==='dark'?'bi-brightness-high':'bi-moon'); } } }
+      function initTheme(){ const s = safeGetStorage(KEY); applyTheme(s || systemPref()); }
+      initTheme();
+      if (btn) btn.addEventListener('click', ()=>{ const next = html.getAttribute('data-bs-theme')==='dark'?'light':'dark'; applyTheme(next); safeSetStorage(KEY,next); });
+    });
   </script>
 
 </body>
