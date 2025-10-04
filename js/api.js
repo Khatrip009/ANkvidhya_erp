@@ -63,7 +63,10 @@
       }
     }
 
-    const fullUrl = url.startsWith('http') ? url : `${base}${url}`;
+    const fullUrl = url.startsWith('http')
+  ? url
+  : `${base.replace(/\/$/, '')}/${url.replace(/^\//, '')}`;
+
 
     const resp = await fetch(`${fullUrl}${qs(query)}`, {
       method,
@@ -80,6 +83,8 @@
 
     if (!resp.ok) {
       if (resp.status === 401 && !_retried) {
+        console.warn('[api] 401 on', url, '— token may have expired');
+      }
         const fresh = getTokenFresh();
         if (fresh && fresh !== token) {
           return request(url, { method, body, query, headers, background, expect, _retried: true });
