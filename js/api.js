@@ -1,12 +1,14 @@
 // public/js/api.js
-(async function () {
+// Lightweight fetch wrapper used by the app. No top-level await; safe IIFE style.
+(function () {
+  'use strict';
+
+  // utility: build query string
   function qs(obj = {}) {
     const params = new URLSearchParams();
     Object.entries(obj).forEach(([k, v]) => {
       if (v === undefined || v === null || v === '') return;
-      if (Array.isArray(v)) v.forEach(iv => {
-        if (iv !== undefined && iv !== null && iv !== '') params.append(k, iv);
-      });
+      if (Array.isArray(v)) v.forEach(iv => { if (iv !== undefined && iv !== null && iv !== '') params.append(k, iv); });
       else params.append(k, v);
     });
     const s = params.toString();
@@ -22,17 +24,22 @@
     } catch { return ''; }
   }
 
+  // Keep token resolution defensive and fresh
   function getTokenFresh() {
     try {
-      const t1 = (window.auth && typeof window.auth.getToken === 'function' && auth.getToken()) || '';
-      if (t1) return t1;
-    } catch {}
+      if (window.auth && typeof window.auth.getToken === 'function') {
+        const t1 = auth.getToken();
+        if (t1) return t1;
+      }
+    } catch (e) {}
     try {
       const t2 = localStorage.getItem('token') || '';
       if (t2) return t2;
-    } catch {}
-    const t3 = readCookie('token') || '';
-    if (t3) return t3;
+    } catch (e) {}
+    try {
+      const t3 = readCookie('token') || '';
+      if (t3) return t3;
+    } catch (e) {}
     return '';
   }
 
@@ -43,17 +50,12 @@
 
   let warnedOnceNoToken = false;
 
-  async function request(url, {
-    method = 'GET',
-    body,
-    query,
-    headers = {},
-    background = false,
-    expect = 'auto',
-    _retried
-  } = {}) {
+  async function request(
+    url,
+    { method = 'GET', body, query, headers = {}, background = false, expect = 'auto', _retried } = {}
+  ) {
     const base = (window.CONFIG && (window.CONFIG.API_BASE || '')) || '';
-    const token = getTokenFresh();
+    let token = getTokenFresh();
 
     const h = new Headers(headers);
     const isFormData = (typeof FormData !== 'undefined') && (body instanceof FormData);
@@ -71,24 +73,32 @@
       }
     }
 
-    const fullUrl = url.startsWith('http')
-      ? url
-      : `${base.replace(/\/$/, '')}/${url.replace(/^\//, '')}`;
+    // build full url; if url already absolute, use it
+    const fullUrl = url.startsWith('http') ? url : `${base}${url}`;
+    const finalUrl = `${fullUrl}${qs(query)}`;
 
-    const resp = await fetch(`${fullUrl}${qs(query)}`, {
-      method,
-      headers: h,
-      body:
-        body === undefined
-          ? undefined
-          : (isFormData || typeof body === 'string')
-            ? body
-            : JSON.stringify(body),
-    });
+    let resp;
+    try {
+      resp = await fetch(finalUrl, {
+        method,
+        headers: h,
+        body:
+          body === undefined
+            ? undefined
+            : (isFormData || typeof body === 'string')
+              ? body
+              : JSON.stringify(body),
+      });
+    } catch (networkErr) {
+      const e = new Error('Network error: ' + (networkErr && networkErr.message ? networkErr.message : networkErr));
+      e.status = 0;
+      throw e;
+    }
 
     const shouldParseJson = expect === 'json' || (expect === 'auto' && isJsonResponse(resp));
 
     if (!resp.ok) {
+      // If server returned 401 and token might have changed, try one retry
       if (resp.status === 401 && !_retried) {
         const fresh = getTokenFresh();
         if (fresh && fresh !== token) {
@@ -98,15 +108,17 @@
 
       let errPayload = null;
       if (shouldParseJson) {
-        try { errPayload = await resp.json(); } catch {}
+        try { errPayload = await resp.json(); } catch (e) { /* ignore parse error */ }
       } else {
         try { const txt = await resp.text(); errPayload = { message: txt }; } catch {}
       }
 
+      // Handle common status cases
       if (resp.status === 401 && !background) {
-        try { window.auth?.setToken(''); } catch {}
+        try { window.auth?.setToken && window.auth.setToken(''); } catch {}
         try { localStorage.removeItem('token'); } catch {}
         if (errPayload?.message) window.ui?.toast?.(errPayload.message, 'danger');
+        // redirect to login page (SPA style)
         if (location.hash !== '#/login') location.replace('#/login');
       }
 
@@ -123,6 +135,7 @@
     if (expect === 'blob') {
       return await resp.blob();
     }
+
     if (shouldParseJson) {
       try { return await resp.json(); } catch { return null; }
     }
@@ -145,8 +158,8 @@
     download,
     get:  (url, opts) => request(url, { ...opts, method: 'GET' }),
     post: (url, body, opts) => request(url, { ...opts, method: 'POST', body }),
-    put:  (url, body, opts) => request(url, { ...opts, method: 'PUT', body }),
+    put:  (url, body, opts) => request(url, { ...opts, method: 'PUT',  body }),
     del:  (url, opts) => request(url, { ...opts, method: 'DELETE' }),
-    background: (url, body, opts) => request(url, { method: 'POST', body, background: true, ...(opts || {}) }),
+    background: (url, body, opts) => request(url, { method: 'POST', body, background: true, ...(opts || {}) } ),
   };
 })();
