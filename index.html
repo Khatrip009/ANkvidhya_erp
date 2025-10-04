@@ -102,18 +102,18 @@
   <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.5.25/dist/jspdf.plugin.autotable.min.js"></script>
 
   <!-- CONFIG: final (filled) -->
+     <!-- CONFIG: set API_BASE early -->
   <script>
-    // === IMPORTANT: backend public URL (ngrok or production). ===
-    // Set to the ngrok URL your backend printed: (including https://)
+    // Replace with your actual backend public URL (ngrok or production). No trailing slash.
     window.CONFIG = window.CONFIG || {};
-    window.CONFIG.API_BASE = 'https://hallucinational-ratlike-coralie.ngrok-free.dev';
+    window.CONFIG.API_BASE = 'https://hallucinational-ratlike-coralie.ngrok-free.dev'; 
     console.info('[CONFIG] API_BASE =', window.CONFIG.API_BASE);
   </script>
 
   <!-- Core libs (order matters) -->
   <script src="/js/ui.js"></script>
-  <script src="/js/auth.js"></script>
-  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>   <!-- must come before api.js -->
+  <script src="/js/api.js"></script>    <!-- depends on auth.getToken -->
 
   <!-- Sidebar / routing / components -->
   <script src="/js/menu.js"></script>
@@ -125,31 +125,11 @@
   <!-- Pages -->
   <script src="/js/pages/login.js"></script>
   <script src="/js/pages/dashboard.js"></script>
-  <script src="/js/pages/reports.js"></script>
-  <script src="/js/pages/students.js"></script>
-  <script src="/js/pages/users.js"></script>
-  <script src="/js/pages/master.js"></script>
-  <script src="/js/pages/employees.js"></script>
-  <script src="/js/pages/schools.js"></script>
-  <script src="/js/pages/courses.js"></script>
-  <script src="/js/pages/books.js"></script>
-  <script src="/js/pages/chapters.js"></script>
-  <script src="/js/pages/faculty-assign.js"></script>
-  <script src="/js/pages/lessonplans.js"></script>
-  <script src="/js/pages/videos.js"></script>
-  <script src="/js/pages/payments.js"></script>
-  <script src="/js/pages/payrolls.js"></script>
-  <script src="/js/pages/expenses.js"></script>
-  <script src="/js/pages/faculty-dp.js"></script>
-  <script src="/js/pages/emp-video-progress.js"></script>
-  <script src="/js/pages/timetables.js"></script>
-  <script src="/js/pages/class-sessions.js"></script>
-  <script src="/js/pages/emp-attendance.js"></script>
-  <script src="/js/pages/student-attendance.js"></script>
-  <script src="/js/pages/notebook-checks.js"></script>
+  <!-- (rest of pages...) -->
 
   <!-- App boot -->
   <script src="/js/app.js"></script>
+
 
   <!-- Theme toggler -->
   <script>
