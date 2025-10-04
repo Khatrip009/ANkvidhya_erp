@@ -6,14 +6,31 @@
   try {
     const base = (window.CONFIG && window.CONFIG.API_BASE) || '';
     const r = await fetch(`${base}/health`);
-    const j = await r.json();
-    console.log('Backend OK', j.now);
+    // If backend returns an HTML error page (e.g. 404 or 500 with HTML),
+    // parsing JSON will throw. Inspect content-type first.
+    const ctype = r.headers.get('content-type') || '';
+    if (r.ok && ctype.includes('application/json')) {
+      try {
+        const j = await r.json();
+        if (j && j.now) console.log('Backend OK', j.now);
+        else console.log('Backend OK (JSON)', j);
+      } catch (parseErr) {
+        console.warn('Health check: unable to parse JSON:', parseErr.message);
+      }
+    } else {
+      // Not OK or not JSON — print useful diagnostics
+      let text = '';
+      try {
+        text = await r.text();
+      } catch (_) { text = ''; }
+      console.warn(`Health check returned non-JSON or error (status ${r.status}):`, text || r.statusText);
+    }
   } catch (e) {
-    console.warn('Health check failed:', e.message);
+    console.warn('Health check failed:', e?.message || e);
   }
 
   // --- Try to hydrate session if token present ---
-  if (auth.isAuthed()) {
+  if (typeof auth !== 'undefined' && auth.isAuthed && auth.isAuthed()) {
     try {
       // auth.loadMe() will call /api/auth/me and call auth.setSession internally.
       // We capture returned data to ensure permissions & role are stored in localStorage.
@@ -32,18 +49,18 @@
       } catch (ignore) {}
 
       // Render sidebar now that role & permissions exist
-      bootSidebar();
+      try { bootSidebar(); } catch (e) { console.warn('bootSidebar error:', e); }
     } catch (e) {
       // loadMe handles logout on 401, but ensure we show guest UI
       console.warn('Session hydration failed:', e?.message || e);
       // Clean up any partial state
       try { localStorage.removeItem('permissions'); } catch (ignore) {}
       try { localStorage.removeItem('role'); } catch (ignore) {}
-      bootSidebar();
+      try { bootSidebar(); } catch (ignore) {}
     }
   } else {
     // No token — guest UI
-    bootSidebar();
+    try { bootSidebar(); } catch (ignore) {}
   }
 
   // --- End init IIFE ---
@@ -57,7 +74,9 @@ document.getElementById('btnTheme')?.addEventListener('click', () => {
 });
 
 // Logout
-document.getElementById('btnLogout')?.addEventListener('click', () => auth.logout());
+document.getElementById('btnLogout')?.addEventListener('click', () => {
+  if (typeof auth !== 'undefined' && auth.logout) auth.logout();
+});
 
 /**
  * Boot sidebar from localStorage role + permissions.
@@ -72,14 +91,25 @@ function bootSidebar() {
   } catch {
     perms = [];
   }
-  window.renderSidebar?.({ role, permissions: perms });
+  // Provide a safe fallback if renderSidebar is not defined
+  if (typeof window.renderSidebar === 'function') {
+    window.renderSidebar?.({ role, permissions: perms });
+  } else {
+    // Minimal fallback: add a simple guest/user indicator if sidebar can't render
+    const sidebarEl = document.getElementById('appSidebar');
+    if (sidebarEl) {
+      sidebarEl.innerHTML = `<div class="p-3">Role: <strong>${role}</strong></div>`;
+    }
+  }
 }
 
 // Boot router when DOM is ready (existing behavior)
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => router.navigate(), { once: true });
+  document.addEventListener('DOMContentLoaded', () => {
+    try { router.navigate(); } catch (e) { console.warn('router.navigate error:', e); }
+  }, { once: true });
 } else {
-  router.navigate();
+  try { router.navigate(); } catch (e) { console.warn('router.navigate error:', e); }
 }
 
 // Sidebar toggle (hamburger)
@@ -90,7 +120,11 @@ if (document.readyState === 'loading') {
     e.preventDefault();
     const el = document.getElementById('appSidebar');
     if (!el) return;
-    bootstrap.Offcanvas.getOrCreateInstance(el).toggle();
+    try {
+      bootstrap.Offcanvas.getOrCreateInstance(el).toggle();
+    } catch (err) {
+      console.warn('Offcanvas toggle failed:', err);
+    }
   });
 })();
 
@@ -105,7 +139,7 @@ if (document.readyState === 'loading') {
     else if (href) location.hash = '#/' + href.replace(/^#?\/*/, '');
     const ocEl = document.getElementById('appSidebar');
     const oc = ocEl ? (bootstrap.Offcanvas.getInstance(ocEl) || bootstrap.Offcanvas.getOrCreateInstance(ocEl)) : null;
-    if (oc) oc.hide();
-    router.navigate();
+    if (oc) try { oc.hide(); } catch (_) {}
+    try { router.navigate(); } catch (err) { console.warn('router.navigate error:', err); }
   });
 })();
