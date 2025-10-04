@@ -101,36 +101,13 @@
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.5.25/dist/jspdf.plugin.autotable.min.js"></script>
 
-  <!-- CONFIG: set your backend public URL here (ngrok or real API) -->
+  <!-- CONFIG: final (filled) -->
   <script>
-    // ======= IMPORTANT: replace this with your actual public backend URL (include https://) =======
-    // Example: 'https://hallucinational-ratlike-coralie.ngrok-free.dev'
-    const NGROK_OR_API_URL = 'https://REPLACE_WITH_YOUR_NGROK_OR_API_URL';
-
+    // === IMPORTANT: backend public URL (ngrok or production). ===
+    // Set to the ngrok URL your backend printed: (including https://)
     window.CONFIG = window.CONFIG || {};
-
-    // If served from a static host (github.io or your custom domain), force API_BASE to your backend
-    const staticHosts = [
-      'khatrip009.github.io',
-      'www.khatrip009.github.io',
-      'erp.ankvidhya.com',
-      'www.erp.ankvidhya.com'
-    ];
-
-    try {
-      const host = location.hostname || '';
-      if (staticHosts.includes(host) || host.endsWith('.github.io')) {
-        // Use the explicit NGROK/PROD URL when running from GitHub Pages / static host
-        window.CONFIG.API_BASE = NGROK_OR_API_URL;
-      } else {
-        // Local dev fallback
-        window.CONFIG.API_BASE = window.CONFIG.API_BASE || (host === 'localhost' ? 'http://localhost:4000' : '');
-      }
-      console.info('[CONFIG] API_BASE =', window.CONFIG.API_BASE);
-    } catch (e) {
-      console.warn('Failed to compute API_BASE', e);
-      window.CONFIG.API_BASE = window.CONFIG.API_BASE || '';
-    }
+    window.CONFIG.API_BASE = 'https://hallucinational-ratlike-coralie.ngrok-free.dev';
+    console.info('[CONFIG] API_BASE =', window.CONFIG.API_BASE);
   </script>
 
   <!-- Core libs (order matters) -->
