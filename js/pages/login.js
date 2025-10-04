@@ -147,33 +147,54 @@ window.pageLogin = (() => {
       try {
         setBusy(true);
 
-        // RLS-friendly login: backend sets app.login_lookup internally
-        const { token } = await api.post('/auth/login', {
-          usernameOrEmail: idVal,
-          password: pwVal
-        });
+        // Try compatibility-first: prefer API-prefixed route, then fallback.
+        const payload = { usernameOrEmail: idVal, password: pwVal };
+        let resp = null;
 
-        if (token) {
-          auth.setToken(token); // subsequent /api/* calls will carry JWT -> dbSession sets session GUCs
+        // Try /api/auth/login first (works if API_BASE configured)
+        try {
+          resp = await api.post('/api/auth/login', payload);
+        } catch (err1) {
+          // Fallback to /auth/login (some deployments)
+          try {
+            resp = await api.post('/auth/login', payload);
+          } catch (err2) {
+            // if both fail, propagate the last error (helps ui messaging)
+            throw err2 || err1;
+          }
         }
+
+        // Defensive token extraction (support { token } or { data: { token } })
+        const token = resp?.token || resp?.data?.token || (typeof resp === 'string' ? resp : null);
+        if (!token) {
+          throw new Error('Login succeeded but no token returned');
+        }
+
+        // Save token (clear any stale role/user first to avoid incorrect UI render)
+        try { localStorage.removeItem('role'); localStorage.removeItem('user'); } catch (e) { /* ignore */ }
+        auth.setToken(token);
 
         if (remember.checked) localStorage.setItem('remember_identifier', idVal);
         else localStorage.removeItem('remember_identifier');
 
-        // hydrate session (triggers /api/auth/me under session-scoped RLS)
+        // Hydrate session (this will call /api/auth/me or fallbacks)
         await auth.loadMe();
 
         ui.toast('Welcome!', 'success');
-        window.location.href = '/#/dashboard';
+
+        // Use hash navigation so router handles mounting
+        location.hash = '#/dashboard';
       } catch (err) {
-        console.error(err);
+        console.error('Login error', err);
         // nicer messages
         if (err?.status === 401) {
           ui.toast(err?.data?.message || 'Invalid credentials', 'danger');
         } else if (err?.status === 403) {
           ui.toast('Signed in, but your role/school scope is restricted (RLS). Please contact admin.', 'warning');
+        } else if (err?.message && err.message.includes('No token')) {
+          ui.toast('Login failed: no token received from server', 'danger');
         } else {
-          ui.toast(err?.data?.message || 'Login failed', 'danger');
+          ui.toast(err?.data?.message || err?.message || 'Login failed', 'danger');
         }
       } finally {
         setBusy(false);
