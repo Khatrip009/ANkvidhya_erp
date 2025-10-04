@@ -2,7 +2,7 @@
 (async () => {
   try {
     const base = (window.CONFIG && window.CONFIG.API_BASE) || '';
-    const url = (base ? base : '') + '/health';
+    const url = `${base.replace(/\/$/, '')}/health`;
     const r = await fetch(url, { cache: 'no-store' });
     const text = await r.text();
     try {
