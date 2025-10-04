@@ -23,14 +23,14 @@ const auth = (() => {
     const role = (data.role_name || data.role || 'guest').toLowerCase();
     localStorage.setItem(ROLE_KEY, role);
 
-    const perms = Array.isArray(data.permissions) ? data.permissions : [];
+    const perms = Array.isArray(data.permissions) ? data.permissions : (Array.isArray(data.perms) ? data.perms : []);
     localStorage.setItem(PERMS_KEY, JSON.stringify(perms));
 
     // Store user info (optional, useful for header/profile)
     localStorage.setItem(USER_KEY, JSON.stringify({
       id: data.id || data.user_id || null,
-      username: data.username || '',
-      email: data.email || '',
+      username: (data.username || (data.user && data.user.username) || ''),
+      email: data.email || (data.user && data.user.email) || '',
       employee_id: data.employee_id || null,
     }));
   }
@@ -46,6 +46,39 @@ const auth = (() => {
   }
 
   /**
+   * Convenience: set token only (backwards compatibility for older code).
+   */
+  function setToken(token) {
+    if (!token) return;
+    localStorage.setItem(TOKEN_KEY, token);
+  }
+
+  /**
+   * Helper getters for older code.
+   */
+  function getToken() {
+    return localStorage.getItem(TOKEN_KEY);
+  }
+  function getRole() {
+    return (localStorage.getItem(ROLE_KEY) || 'guest').toLowerCase();
+  }
+  function getPermissions() {
+    try {
+      const p = JSON.parse(localStorage.getItem(PERMS_KEY) || '[]');
+      return Array.isArray(p) ? p : [];
+    } catch {
+      return [];
+    }
+  }
+  function getUser() {
+    try {
+      return JSON.parse(localStorage.getItem(USER_KEY) || '{}');
+    } catch {
+      return {};
+    }
+  }
+
+  /**
    * Login using username/password.
    * Expects backend to return { token, user, role, permissions }.
    */
@@ -57,7 +90,17 @@ const auth = (() => {
       body: JSON.stringify({ username, password }),
     });
 
-    if (!res.ok) throw new Error('Invalid credentials or server error');
+    if (!res.ok) {
+      // try to surface server JSON message if available
+      let msg = 'Invalid credentials or server error';
+      try {
+        const j = await res.json();
+        if (j && j.message) msg = j.message;
+      } catch (e) {
+        // ignore parse error
+      }
+      throw new Error(msg);
+    }
     const data = await res.json();
     if (!data || !data.token) throw new Error('Invalid login response');
 
@@ -84,7 +127,14 @@ const auth = (() => {
       throw new Error('Session expired');
     }
 
-    if (!res.ok) throw new Error('Failed to load session');
+    if (!res.ok) {
+      let msg = 'Failed to load session';
+      try {
+        const j = await res.json();
+        if (j && j.message) msg = j.message;
+      } catch (_) {}
+      throw new Error(msg);
+    }
 
     const json = await res.json();
     const data = json.data || json;
@@ -98,7 +148,13 @@ const auth = (() => {
    */
   function logout() {
     clearSession();
-    window.location.href = '/login.html';
+    // If already on login page, don't force navigation loop
+    if (!location.pathname.endsWith('/login.html') && !location.pathname.endsWith('/login')) {
+      window.location.href = '/login.html';
+    } else {
+      // If already on login page, simply clear state and reload so UI updates
+      try { bootSidebar(); } catch (e) {}
+    }
   }
 
   return {
@@ -108,5 +164,11 @@ const auth = (() => {
     loadMe,
     setSession,
     clearSession,
+    // backward-compatible aliases / helpers
+    setToken,
+    getToken,
+    getRole,
+    getPermissions,
+    getUser,
   };
 })();
