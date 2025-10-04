@@ -1,10 +1,12 @@
 // public/js/api.js
-(function () {
+(async function () {
   function qs(obj = {}) {
     const params = new URLSearchParams();
     Object.entries(obj).forEach(([k, v]) => {
       if (v === undefined || v === null || v === '') return;
-      if (Array.isArray(v)) v.forEach(iv => { if (iv !== undefined && iv !== null && iv !== '') params.append(k, iv); });
+      if (Array.isArray(v)) v.forEach(iv => {
+        if (iv !== undefined && iv !== null && iv !== '') params.append(k, iv);
+      });
       else params.append(k, v);
     });
     const s = params.toString();
@@ -24,11 +26,11 @@
     try {
       const t1 = (window.auth && typeof window.auth.getToken === 'function' && auth.getToken()) || '';
       if (t1) return t1;
-    } catch (e) {}
+    } catch {}
     try {
       const t2 = localStorage.getItem('token') || '';
       if (t2) return t2;
-    } catch (e) {}
+    } catch {}
     const t3 = readCookie('token') || '';
     if (t3) return t3;
     return '';
@@ -41,15 +43,21 @@
 
   let warnedOnceNoToken = false;
 
-  async function request(
-    url,
-    { method = 'GET', body, query, headers = {}, background = false, expect = 'auto', _retried } = {}
-  ) {
+  async function request(url, {
+    method = 'GET',
+    body,
+    query,
+    headers = {},
+    background = false,
+    expect = 'auto',
+    _retried
+  } = {}) {
     const base = (window.CONFIG && (window.CONFIG.API_BASE || '')) || '';
-    let token = getTokenFresh();
+    const token = getTokenFresh();
 
     const h = new Headers(headers);
     const isFormData = (typeof FormData !== 'undefined') && (body instanceof FormData);
+
     if (!h.has('Content-Type') && body !== undefined && !isFormData && typeof body !== 'string') {
       h.set('Content-Type', 'application/json');
     }
@@ -64,9 +72,8 @@
     }
 
     const fullUrl = url.startsWith('http')
-  ? url
-  : `${base.replace(/\/$/, '')}/${url.replace(/^\//, '')}`;
-
+      ? url
+      : `${base.replace(/\/$/, '')}/${url.replace(/^\//, '')}`;
 
     const resp = await fetch(`${fullUrl}${qs(query)}`, {
       method,
@@ -83,8 +90,6 @@
 
     if (!resp.ok) {
       if (resp.status === 401 && !_retried) {
-        console.warn('[api] 401 on', url, '— token may have expired');
-      }
         const fresh = getTokenFresh();
         if (fresh && fresh !== token) {
           return request(url, { method, body, query, headers, background, expect, _retried: true });
@@ -93,7 +98,7 @@
 
       let errPayload = null;
       if (shouldParseJson) {
-        try { errPayload = await resp.json(); } catch (e) { /* ignore */ }
+        try { errPayload = await resp.json(); } catch {}
       } else {
         try { const txt = await resp.text(); errPayload = { message: txt }; } catch {}
       }
@@ -140,7 +145,7 @@
     download,
     get:  (url, opts) => request(url, { ...opts, method: 'GET' }),
     post: (url, body, opts) => request(url, { ...opts, method: 'POST', body }),
-    put:  (url, body, opts) => request(url, { ...opts, method: 'PUT',  body }),
+    put:  (url, body, opts) => request(url, { ...opts, method: 'PUT', body }),
     del:  (url, opts) => request(url, { ...opts, method: 'DELETE' }),
     background: (url, body, opts) => request(url, { method: 'POST', body, background: true, ...(opts || {}) }),
   };
