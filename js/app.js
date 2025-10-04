@@ -1,7 +1,8 @@
 // public/js/app.js
+'use strict';
 
 (async () => {
-  // Health check with correct API_BASE
+  // --- Health check (non-blocking) ---
   try {
     const base = (window.CONFIG && window.CONFIG.API_BASE) || '';
     const r = await fetch(`${base}/health`);
@@ -11,17 +12,41 @@
     console.warn('Health check failed:', e.message);
   }
 
-  // If already authed (token present), hydrate session from /api/auth/me
+  // --- Try to hydrate session if token present ---
   if (auth.isAuthed()) {
     try {
-      await auth.loadMe(); // sets session (role + permissions)
-    } catch {
-      // loadMe handles logout on 401
+      // auth.loadMe() will call /api/auth/me and call auth.setSession internally.
+      // We capture returned data to ensure permissions & role are stored in localStorage.
+      const me = await auth.loadMe();
+
+      // Some older code expects permissions in localStorage; ensure it's saved.
+      try {
+        const perms = (me && (me.permissions || me.perms)) || [];
+        localStorage.setItem('permissions', JSON.stringify(Array.isArray(perms) ? perms : []));
+      } catch (ignore) {}
+
+      // Ensure role is normalized and stored (some backends return role or role_name)
+      try {
+        const role = (me && (me.role_name || me.role)) || localStorage.getItem('role') || 'guest';
+        localStorage.setItem('role', (role || 'guest').toLowerCase());
+      } catch (ignore) {}
+
+      // Render sidebar now that role & permissions exist
+      bootSidebar();
+    } catch (e) {
+      // loadMe handles logout on 401, but ensure we show guest UI
+      console.warn('Session hydration failed:', e?.message || e);
+      // Clean up any partial state
+      try { localStorage.removeItem('permissions'); } catch (ignore) {}
+      try { localStorage.removeItem('role'); } catch (ignore) {}
+      bootSidebar();
     }
+  } else {
+    // No token — guest UI
+    bootSidebar();
   }
 
-  // Now boot sidebar with role + permissions
-  bootSidebar();
+  // --- End init IIFE ---
 })();
 
 // Theme toggle
@@ -34,14 +59,23 @@ document.getElementById('btnTheme')?.addEventListener('click', () => {
 // Logout
 document.getElementById('btnLogout')?.addEventListener('click', () => auth.logout());
 
-// Init role-based sidebar
+/**
+ * Boot sidebar from localStorage role + permissions.
+ * This is the canonical place used throughout your app to render sidebar.
+ */
 function bootSidebar() {
   const role = (localStorage.getItem('role') || 'guest').toLowerCase();
-  const perms = JSON.parse(localStorage.getItem('permissions') || '[]');
+  let perms = [];
+  try {
+    perms = JSON.parse(localStorage.getItem('permissions') || '[]');
+    if (!Array.isArray(perms)) perms = [];
+  } catch {
+    perms = [];
+  }
   window.renderSidebar?.({ role, permissions: perms });
 }
 
-// Boot router when DOM is ready
+// Boot router when DOM is ready (existing behavior)
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => router.navigate(), { once: true });
 } else {
@@ -60,7 +94,7 @@ if (document.readyState === 'loading') {
   });
 })();
 
-// Sidebar link navigation
+// Sidebar link navigation (existing)
 (function wireSidebarLinks() {
   document.body.addEventListener('click', (e) => {
     const a = e.target.closest('a[data-route]');
